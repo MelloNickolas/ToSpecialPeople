@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nossa história</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Raleway:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #0e0e0e; --border: #1e1e1e;
+      --gold: #c9a84c; --gold-light: #e8c97a;
+      --text: #ede5d8; --muted: #4a4440;
+    }
+    html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Raleway', sans-serif; font-weight: 300; }
+    body::before { content:''; position:fixed; inset:0; z-index:100; pointer-events:none; opacity:.35; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"); }
+
+    canvas#bg { position:fixed; inset:0; z-index:0; }
+
+    .cursor { width:5px; height:5px; border-radius:50%; background:var(--gold); position:fixed; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:difference; }
+    .cursor-ring { width:26px; height:26px; border-radius:50%; border:1px solid rgba(201,168,76,.35); position:fixed; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:left .1s ease,top .1s ease; }
+
+    .flash { position:fixed; inset:0; background:var(--bg); z-index:998; opacity:1; transition:opacity 1s ease; pointer-events:none; }
+    .flash.gone { opacity:0; }
+
+    /* HEADER */
+    header {
+      position:relative; z-index:10; text-align:center;
+      padding: 5rem 2rem 3rem;
+    }
+    .eyebrow { font-size:.6rem; letter-spacing:.55em; text-transform:uppercase; color:var(--gold); margin-bottom:1rem; opacity:0; animation:riseUp 1s ease forwards .3s; }
+    h1 { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(2rem,5vw,3.2rem); font-weight:300; color:var(--text); line-height:1.2; margin-bottom:.5rem; opacity:0; animation:riseUp 1s ease forwards .5s; }
+    h1 span { color:var(--gold-light); }
+    .tagline { font-size:.65rem; letter-spacing:.3em; color:var(--muted); text-transform:uppercase; opacity:0; animation:riseUp 1s ease forwards .7s; }
+
+    /* DIVIDER */
+    .divider { display:flex; align-items:center; gap:1rem; max-width:400px; margin:2.5rem auto; opacity:0; animation:riseUp 1s ease forwards .8s; }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--border)); }
+    .divider::after { background:linear-gradient(90deg,var(--border),transparent); }
+    .divider span { font-size:.6rem; color:var(--gold); letter-spacing:.3em; }
+
+    /* GRID */
+    .grid {
+      position:relative; z-index:10;
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+      gap:1.5rem; max-width:960px; margin:0 auto; padding:0 2rem 6rem;
+    }
+
+    /* CARD */
+    .card {
+      background:var(--surface); border:1px solid var(--border);
+      padding:2rem 1.6rem; position:relative; overflow:hidden;
+      cursor:pointer; transition:border-color .4s, transform .4s;
+      opacity:0; animation:riseUp .8s ease forwards;
+    }
+    .card:hover { border-color:var(--gold); transform:translateY(-4px); }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0; transition:opacity .4s; }
+    .card:hover::before { opacity:1; }
+    .card::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at top, rgba(201,168,76,.04), transparent 70%); opacity:0; transition:opacity .4s; }
+    .card:hover::after { opacity:1; }
+
+    .card-number { font-size:.55rem; letter-spacing:.5em; text-transform:uppercase; color:var(--gold); margin-bottom:1rem; opacity:.7; }
+    .card-title { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.4rem; font-weight:300; color:var(--text); line-height:1.25; margin-bottom:.5rem; }
+    .card-subtitle { font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:1.2rem; }
+    .card-quote { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:.85rem; color:var(--text); opacity:.55; line-height:1.6; margin-bottom:1rem; }
+    .card-author { font-size:.55rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); opacity:.7; }
+
+    .card-arrow { position:absolute; bottom:1.4rem; right:1.4rem; font-size:.8rem; color:var(--gold); opacity:0; transform:translateX(-6px); transition:opacity .3s, transform .3s; }
+    .card:hover .card-arrow { opacity:1; transform:translateX(0); }
+
+    /* QUOTE TOAST */
+    .q-toast { position:fixed; bottom:2.5rem; left:50%; transform:translateX(-50%) translateY(16px); background:var(--surface); border:1px solid var(--border); border-top:1px solid var(--gold); padding:1.1rem 1.8rem; max-width:380px; width:90%; text-align:center; opacity:0; transition:all .7s cubic-bezier(.16,1,.3,1); pointer-events:none; z-index:600; }
+    .q-toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+    .q-toast p { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:.95rem; color:var(--text); line-height:1.65; }
+    .q-toast cite { display:block; margin-top:.4rem; font-size:.58rem; letter-spacing:.22em; color:var(--gold); text-transform:uppercase; font-style:normal; }
+
+    @keyframes riseUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  </style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="ring"></div>
+<canvas id="bg"></canvas>
+<div class="flash" id="flash"></div>
+
+<header>
+  <div class="eyebrow">✦ nossa história ✦</div>
+  <h1>Cada momento,<br/><span>guardado pra ti</span></h1>
+  <p class="tagline">escolha uma etapa para revisitar</p>
+  <div class="divider"><span>✦</span></div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<div class="q-toast" id="toast">
+  <p id="qText"></p>
+  <cite id="qAuthor"></cite>
+</div>
+
+<script>
+if(!sessionStorage.getItem('authed')){ window.location.href='index.html'; }
+
+const STEPS = [
+  { n:1, label:'O começo', subtitle:'quando percebi que você era especial', quote:'O inconsciente não esquece o que o coração escolheu.', author:'inspirado em Freud' },
+  { n:2, label:'O que eu vejo em você', subtitle:'o que enxergo quando te olho', quote:'Ser visto pelo outro é a mais profunda necessidade do ser humano.', author:'D.W. Winnicott' },
+  { n:3, label:'Os momentos que guardo', subtitle:'minha memória favorita com você', quote:'A memória afetiva é o que nos constitui — somos feitos do que amamos.', author:'inspirado em Freud' },
+  { n:4, label:'O que sinto', subtitle:'o que você desperta em mim', quote:'O amor é a mais poderosa das forças psíquicas — e a mais corajosa.', author:'Sigmund Freud' },
+  { n:5, label:'Além da fé', subtitle:'o que nos une vai além do que cada um acredita', quote:'A verdadeira presença não precisa de rótulo — ela simplesmente é.', author:'inspirado em Winnicott' },
+  { n:6, label:'O que quero construir', subtitle:'o que imagino pra nós', quote:'Amar é dar o que não se tem — é oferecer ao outro espaço para ser.', author:'Jacques Lacan' },
+  { n:7, label:'Feliz aniversário', subtitle:'hoje é seu dia', quote:'Nascer é o começo de todas as transferências — o primeiro encontro com o mundo.', author:'inspirado em Lacan' },
+  { n:8, label:'O que importa', subtitle:'se não for nós, vai ser doido', quote:'O amor verdadeiro sobrevive à ambivalência — e é exatamente isso que o torna real.', author:'Melanie Klein' },
+];
+
+// Cursor
+const cur=document.getElementById('cursor'), rng=document.getElementById('ring');
+document.addEventListener('mousemove',e=>{ cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; rng.style.left=e.clientX+'px'; rng.style.top=e.clientY+'px'; });
+
+// Canvas
+const canvas=document.getElementById('bg'), ctx=canvas.getContext('2d');
+let W,H; function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight;} resize(); window.addEventListener('resize',resize);
+const pts=Array.from({length:100},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*.9+.2,a:Math.random()*.3+.05,vy:Math.random()*.25+.03,vx:(Math.random()-.5)*.15}));
+const petals=Array.from({length:12},()=>np(true));
+function np(init){return{x:Math.random()*innerWidth,y:init?Math.random()*innerHeight:-20,sz:Math.random()*8+4,vy:Math.random()+.3,vx:(Math.random()-.5)*.5,rot:Math.random()*Math.PI*2,rv:(Math.random()-.5)*.03,a:Math.random()*.3+.1,hue:340+Math.random()*20,sat:45+Math.random()*20,lig:18+Math.random()*14};}
+let fr=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.min(W,H)*.5);
+  g.addColorStop(0,'rgba(201,168,76,0.04)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  pts.forEach(p=>{p.y+=p.vy;p.x+=p.vx;if(p.y>H)p.y=-4;if(p.x<0||p.x>W)p.vx*=-1;const fl=Math.sin(fr*.016+p.x)*.1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(201,168,76,${p.a+fl})`;ctx.fill();});
+  petals.forEach(p=>{p.y+=p.vy;p.x+=p.vx+Math.sin(fr*.006+p.x*.01)*.3;p.rot+=p.rv;if(p.y>H+20)Object.assign(p,np(false));ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=p.a;ctx.fillStyle=`hsl(${p.hue},${p.sat}%,${p.lig}%)`;ctx.beginPath();ctx.ellipse(0,0,p.sz*.4,p.sz,0,0,Math.PI*2);ctx.fill();ctx.restore();});
+  fr++;requestAnimationFrame(draw);
+}
+draw();
+
+// Quote toast
+function showQ(t,a){
+  document.getElementById('qText').textContent='\u201C'+t+'\u201D';
+  document.getElementById('qAuthor').textContent='— '+a;
+  const toast=document.getElementById('toast');
+  toast.classList.add('visible');
+  setTimeout(()=>toast.classList.remove('visible'),5000);
+}
+
+// Build grid
+const grid=document.getElementById('grid');
+STEPS.forEach((s,i)=>{
+  const card=document.createElement('div');
+  card.className='card';
+  card.style.animationDelay=(0.3 + i*0.08)+'s';
+  card.innerHTML=`
+    <div class="card-number">✦ etapa ${s.n}</div>
+    <div class="card-title">${s.label}</div>
+    <div class="card-subtitle">${s.subtitle}</div>
+    <div class="card-quote">"${s.quote}"</div>
+    <div class="card-author">— ${s.author}</div>
+    <div class="card-arrow">→</div>
+  `;
+  card.addEventListener('click',()=>{
+    sessionStorage.setItem('currentStep', i);
+    sessionStorage.setItem('fromGallery','1');
+    navigateTo('trilha.html');
+  });
+  grid.appendChild(card);
+});
+
+// Flash out
+window.addEventListener('load',()=>{
+  const fl=document.getElementById('flash');
+  setTimeout(()=>{ fl.style.opacity='0'; },300);
+});
+
+// Idle easter egg
+const QUOTES=[
+  {t:'O inconsciente não esquece o que o coração escolheu.',a:'inspirado em Freud'},
+  {t:'Ser visto é a mais profunda necessidade do ser humano.',a:'D.W. Winnicott'},
+  {t:'O amor não é apenas um sentimento — é uma arte que exige prática.',a:'Erich Fromm'},
+  {t:'A transferência revela o que as palavras não ousam dizer.',a:'inspirado em Lacan'},
+];
+function navigateTo(url){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#080808;z-index:9999;opacity:0;transition:opacity 0.6s ease;pointer-events:all;';
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=>{
+    overlay.style.opacity='1';
+    setTimeout(()=>{ window.location.href=url; },650);
+  });
+}
+
+let qi=0,idleT,shown=false;
+function resetIdle(){clearTimeout(idleT);idleT=setTimeout(()=>{if(!shown){shown=true;const q=QUOTES[qi%QUOTES.length];qi++;showQ(q.t,q.a);setTimeout(()=>shown=false,6000);}},10000);}
+document.addEventListener('mousemove',resetIdle);
+resetIdle();
+</script>
+</body>
+</html>

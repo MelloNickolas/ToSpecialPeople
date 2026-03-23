@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A trilha</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Raleway:wght@200;300;400&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #080808;
+      --surface: #0e0e0e;
+      --border: #1e1e1e;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --text: #ede5d8;
+      --muted: #4a4440;
+      --dim: #2a2a2a;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+      opacity: .35;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    }
+
+    canvas#bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .cursor {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--gold);
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+    }
+
+    .cursor-ring {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid rgba(201, 168, 76, .35);
+      position: fixed;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: left .1s ease, top .1s ease;
+    }
+
+    /* FLASH OVERLAY */
+    .flash {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 998;
+      opacity: 1;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    .flash.gone {
+      opacity: 0;
+    }
+
+    /* PROGRESS BAR */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      z-index: 500;
+      transition: width .8s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    /* STEP COUNTER */
+    .step-counter {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 500;
+      font-size: .58rem;
+      letter-spacing: .35em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .step-counter span {
+      color: var(--gold);
+    }
+
+    /* MAIN */
+    main {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem 6rem;
+    }
+
+    .step-wrap {
+      width: 100%;
+      max-width: 680px;
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .9s cubic-bezier(.16, 1, .3, 1), transform .9s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .step-wrap.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .step-number {
+      font-size: .55rem;
+      letter-spacing: .55em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .step-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: clamp(1.8rem, 4.5vw, 3rem);
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: .4rem;
+    }
+
+    .step-subtitle {
+      font-size: .68rem;
+      letter-spacing: .25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+
+    /* OPENING QUOTE (per step) */
+    .step-quote {
+      border-left: 1px solid var(--gold);
+      padding: .8rem 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .step-quote p {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: .95rem;
+      color: var(--text);
+      opacity: .75;
+      line-height: 1.6;
+    }
+
+    .step-quote cite {
+      font-size: .55rem;
+      letter-spacing: .2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-style: normal;
+      margin-top: .3rem;
+      display: block;
+    }
+
+    /* VIDEO PLAYER — vertical stories */
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto 2rem;
+      background: #000;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      border-radius: 2px;
+      aspect-ratio: 9/16;
+    }
+
+    .video-wrap video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, .45);
+      cursor: pointer;
+      transition: opacity .4s;
+    }
+
+    .video-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .play-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform .3s;
+      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, .3);
+    }
+
+    .play-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .play-btn svg {
+      fill: var(--gold);
+      margin-left: 4px;
+    }
+
+    .video-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, .15);
+    }
+
+    .video-progress-fill {
+      height: 100%;
+      background: var(--gold);
+      width: 0%;
+      transition: width .3s linear;
+    }
+
+    /* WATCHED BADGE */
+    .watched-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .6rem;
+      letter-spacing: .25em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transition: opacity .5s;
+    }
+
+    .watched-badge.show {
+      opacity: 1;
+    }
+
+    .watched-badge::before {
+      content: '✓';
+    }
+
+    /* WRITTEN TEXT */
+    .written-text {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--gold);
+      padding: 1.6rem;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .written-text::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+    }
+
+    .written-label {
+      font-size: .55rem;
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: .8rem;
+    }
+
+    .written-content {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      line-height: 1.85;
+      color: var(--text);
+      font-style: italic;
+    }
+
+    /* NEXT BUTTON */
+    .next-btn {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: 'Raleway', sans-serif;
+      font-size: .6rem;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      padding: .9rem 2rem;
+      cursor: pointer;
+      transition: all .4s;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .next-btn.ready {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .next-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gold);
+      transform: translateX(-101%);
+      transition: transform .4s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .next-btn:hover::before {
+      transform: translateX(0);
+    }
+
+    .next-btn:hover {
+      color: var(--bg);
+    }
+
+    .next-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .next-btn svg {
+      position: relative;
+      z-index: 1;
+      transition: fill .4s;
+    }
+
+    .next-btn:hover svg {
+      fill: var(--bg);
+    }
+
+    /* FINAL STEP */
+    .final-message {
+      text-align: center;
+      padding: 2rem 0;
+    }
+
+    .final-message .big {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+
+    .final-message .big span {
+      color: var(--gold-light);
+    }
+
+    .final-message .small {
+      font-size: .7rem;
+      letter-spacing: .25em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .heart-burst {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 1.5rem;
+      animation: heartbeat 1.5s ease infinite;
+    }
+
+    @keyframes heartbeat {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.15)
+      }
+    }
+
+    /* QUOTE TOAST */
+    .q-toast {
+      position: fixed;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 1px solid var(--gold);
+      padding: 1.1rem 1.8rem;
+      max-width: 380px;
+      width: 90%;
+      text-align: center;
+      opacity: 0;
+      transition: all .7s cubic-bezier(.16, 1, .3, 1);
+      pointer-events: none;
+      z-index: 600;
+    }
+
+    .q-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .q-toast p {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: .95rem;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .q-toast cite {
+      display: block;
+      margin-top: .4rem;
+      font-size: .58rem;
+      letter-spacing: .22em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-style: normal;
+    }
+
+    /* LOCKED overlay */
+    .locked-msg {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+
+    .locked-msg p {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    @keyframes riseUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* Separator ornament */
+    .ornament {
+      text-align: center;
+      color: var(--gold);
+      letter-spacing: .5em;
+      font-size: .7rem;
+      margin: 1.5rem 0;
+      opacity: .4;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="ring"></div>
+  <canvas id="bg"></canvas>
+  <div class="flash" id="flash"></div>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="step-counter">Etapa <span id="stepNum">1</span> de 8</div>
+
+  <main>
+    <div class="step-wrap" id="stepWrap"></div>
+  </main>
+
+  <div class="q-toast" id="toast">
+    <p id="qText"></p>
+    <cite id="qAuthor"></cite>
+  </div>
+
+  <script>
+    // ── GUARD ──────────────────────────
+    if (!sessionStorage.getItem('authed')) { window.location.href = 'index.html'; }
+    const firstName = sessionStorage.getItem('firstName') || 'você';
+    const TOTAL = 8;
+    // ── STEPS DATA ─────────────────────
+    const STEPS = [
+      {
+        n: 1, label: 'O começo',
+        subtitle: 'quando percebi que você era especial',
+        quote: { t: 'O inconsciente não esquece o que o coração escolheu.', a: 'inspirado em Freud' },
+        video: 'videos/1.mp4',
+        text: `Uma simples mensagem que quando chegou eu nem acreditei, a menina linda da faculdade tinha me mandado mensagem, cheguei e contei para um amigo meu, eu não tava nem acreditando, aquela menina do pátio da faculdade era muito areia para o meu caminhãozinho.`,
+        easterEgg: { trigger: 'idle', quote: 'O inconsciente nunca dorme — ele guarda cada detalhe daquele primeiro encontro.', author: 'inspirado em Freud' }
+      },
+      {
+        n: 2, label: 'O que eu vejo em você',
+        subtitle: 'o que enxergo quando te olho',
+        quote: { t: 'Ser visto pelo outro é a mais profunda necessidade do ser humano.', a: 'D.W. Winnicott' },
+        video: 'videos/2.mp4',
+        text: `O esforço é explicito em suas ações, o quanto você se importa com os outros, e o quanto você é guerreira e corre atrás do que você quer, essa qualidade sua que fez eu me apaixonar por você.`,
+        easterEgg: { trigger: 'title-click', quote: 'Winnicott dizia: o verdadeiro self só emerge quando há um olhar que acolhe.', author: 'D.W. Winnicott' }
+      },
+      {
+        n: 3, label: 'Os momentos que guardo',
+        subtitle: 'minha memória favorita com você',
+        quote: { t: 'A memória afetiva é o que nos constitui — somos feitos do que amamos.', a: 'inspirado em Freud' },
+        video: 'videos/3.mp4',
+        text: `Não tenho como colocar uma memória favorita, lógico que quando nós saímos é a que eu mais me lembro, e a que mais tenho saudade, mas a minha memória favorita com você foi todas as noites que ficamos conversando em call, todas as noites que me salvou, e que me ensinou a ser uma pessoas melhor.`,
+        easterEgg: { trigger: 'idle', quote: 'Para Freud, nada do que é afetivo se perde de verdade — apenas muda de forma.', author: 'Freud' }
+      },
+      {
+        n: 4, label: 'O que sinto',
+        subtitle: 'o que você desperta em mim',
+        quote: { t: 'O amor, para Freud, é a mais poderosa das forças psíquicas — ela move o que a razão não alcança.', a: 'Sigmund Freud' },
+        video: 'videos/4.mp4',
+        text: `Inspiração para lutar pelos meus sonhos, motivação para me tornar alguem melhor, você desperta em mim uma ambição maior, as vezes me sinto bem abaixo de você, e acho que sou mesmo, porque você é alguem incrivel, e eu sou só um simples errante.`,
+        easterEgg: { trigger: 'title-click', quote: 'O amor é a mais poderosa das forças psíquicas — e a mais corajosa.', author: 'Freud' }
+      },
+      {
+        n: 5, label: 'Além da fé',
+        subtitle: 'o que nos une vai além do que cada um acredita',
+        quote: { t: 'A verdadeira presença não precisa de rótulo — ela simplesmente é.', a: 'inspirado em Winnicott' },
+        video: 'videos/5.mp4',
+        text: `O Candomblé me ensinou a ver o sagrado em tudo. Em cada folha, em cada vento, em cada pessoa que chega na nossa vida com propósito.\n\nVocê crê no seu Deus, e eu respeito isso. A sua fé faz parte de quem você é, e eu admiro quem você é.\n\nO que sinto por você não cabe em doutrina nenhuma. É algo que existe entre nós, que nenhuma diferença apaga.\n\nSempre vou respeitar o que você acredita. Sempre.`,
+        easterEgg: { trigger: 'idle', quote: 'Onde há respeito genuíno, há espaço para o outro existir por inteiro.', author: 'inspirado em Winnicott' }
+      },
+      {
+        n: 6, label: 'O que quero construir',
+        subtitle: 'o que imagino pra nós',
+        quote: { t: 'Amar é dar o que não se tem — é oferecer ao outro espaço para ser.', a: 'Jacques Lacan' },
+        video: 'videos/6.mp4',
+        text: `Eu quero contruir uma vida, um futuro, um la;o inquebrável, mas acima de tudo, um sentimento em você, fazer você se sentir única. E VAI ASSISTIR JOGO DO PALMEIRAS COMIGO SIM!`,
+        easterEgg: { trigger: 'title-click', quote: 'Lacan dizia: amar é dar o que não se tem a quem não é — e ainda assim persistir.', author: 'Jacques Lacan' }
+      },
+      {
+        n: 7, label: 'Feliz aniversário',
+        subtitle: 'hoje é seu dia',
+        quote: { t: 'Nascer é o começo de todas as transferências — o primeiro encontro com o mundo.', a: 'inspirado em Lacan' },
+        video: 'videos/7.mp4',
+        text: `20 anos, um novo ciclo chegando, novos desafios, nova vida, agora vem a vida adulta a tona, mas nisso você vai se destacar, vai se sobresair, continue sendo essa pessoa que você é, e não tema mudanças, Deus tem um caminho trilhado para você, e você sabe disso.`,
+        easterEgg: { trigger: 'idle', quote: 'Winnicott dizia que o cuidado genuíno é a forma mais concreta de amor.', author: 'D.W. Winnicott' }
+      },
+      {
+        n: 8, label: 'O que importa',
+        subtitle: 'se não for nós, vai ser doido',
+        quote: { t: 'O amor verdadeiro sobrevive à ambivalência — e é exatamente isso que o torna real.', a: 'Melanie Klein' },
+        video: 'videos/8.mp4',
+        text: `Se não for nós, vai ser doido...\n\nMas te ver feliz, do jeito que você merece, com quem te faz bem, é o que importa de verdade.\n\nVocê é especial, ${firstName}. Isso nunca vai mudar.`,
+        final: true,
+        easterEgg: { trigger: 'title-click', quote: 'Klein dizia: o amor verdadeiro sobrevive à ambivalência — porque é real.', author: 'Melanie Klein' }
+      },
+    ];
+    // ── STATE ───────────────────────────
+    let current = parseInt(sessionStorage.getItem('currentStep') || '0');
+    let watched = JSON.parse(sessionStorage.getItem('watchedSteps') || '[]');
+
+    // ── CURSOR ──────────────────────────
+    const cur = document.getElementById('cursor'), rng = document.getElementById('ring');
+    document.addEventListener('mousemove', e => {
+      cur.style.left = e.clientX + 'px'; cur.style.top = e.clientY + 'px';
+      rng.style.left = e.clientX + 'px'; rng.style.top = e.clientY + 'px';
+    });
+
+    // ── CANVAS ──────────────────────────
+    const canvas = document.getElementById('bg'), ctx = canvas.getContext('2d');
+    let W, H; function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; } resize(); window.addEventListener('resize', resize);
+    const pts = Array.from({ length: 100 }, () => ({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: Math.random() * .9 + .2, a: Math.random() * .3 + .05, vy: Math.random() * .25 + .03, vx: (Math.random() - .5) * .15 }));
+    const petals = Array.from({ length: 14 }, () => np(true));
+    function np(init) { return { x: Math.random() * innerWidth, y: init ? Math.random() * innerHeight : -20, sz: Math.random() * 8 + 4, vy: Math.random() + .3, vx: (Math.random() - .5) * .5, rot: Math.random() * Math.PI * 2, rv: (Math.random() - .5) * .03, a: Math.random() * .3 + .1, hue: 340 + Math.random() * 20, sat: 45 + Math.random() * 20, lig: 18 + Math.random() * 14 }; }
+    let fr = 0;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) * .5);
+      g.addColorStop(0, 'rgba(201,168,76,0.04)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      pts.forEach(p => { p.y += p.vy; p.x += p.vx; if (p.y > H) p.y = -4; if (p.x < 0 || p.x > W) p.vx *= -1; const fl = Math.sin(fr * .016 + p.x) * .1; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(201,168,76,${p.a + fl})`; ctx.fill(); });
+      petals.forEach(p => { p.y += p.vy; p.x += p.vx + Math.sin(fr * .006 + p.x * .01) * .3; p.rot += p.rv; if (p.y > H + 20) Object.assign(p, np(false)); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = p.a; ctx.fillStyle = `hsl(${p.hue},${p.sat}%,${p.lig}%)`; ctx.beginPath(); ctx.ellipse(0, 0, p.sz * .4, p.sz, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+      fr++; requestAnimationFrame(draw);
+    }
+    draw();
+
+    // ── QUOTE TOAST ─────────────────────
+    function showQ(t, a) {
+      document.getElementById('qText').textContent = '\u201C' + t + '\u201D';
+      document.getElementById('qAuthor').textContent = '— ' + a;
+      const toast = document.getElementById('toast');
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 5000);
+    }
+
+    // ── PROGRESS ────────────────────────
+    function updateProgress() {
+      const pct = ((current) / TOTAL) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('stepNum').textContent = current + 1;
+    }
+
+    // ── RENDER STEP ─────────────────────
+    function renderStep(idx) {
+      const s = STEPS[idx];
+      const wrap = document.getElementById('stepWrap');
+      wrap.classList.remove('active');
+
+      setTimeout(() => {
+        const hasWatched = watched.includes(idx);
+        const fromGallery = sessionStorage.getItem('fromGallery') === '1';
+        const isLocked = !fromGallery && idx > 0 && !watched.includes(idx - 1);
+
+        let html = `
+      <div class="step-number">✦ Etapa ${s.n} de ${TOTAL}</div>
+      <div class="step-title" id="stepTitle">${s.label}</div>
+      <p class="step-subtitle">${s.subtitle}</p>
+    `;
+
+        if (isLocked) {
+          html += `<div class="locked-msg"><p>Esta etapa ainda está esperando por você.<br/>Assista a etapa anterior primeiro para continuar a jornada.</p></div>`;
+        } else {
+          // Opening quote
+          html += `<div class="step-quote"><p>${s.quote.t}</p><cite>— ${s.quote.a}</cite></div>`;
+          html += `<div class="ornament">✦ ✦ ✦</div>`;
+
+          // Video player
+          html += `
+        <div class="video-wrap" id="videoWrap">
+          <video id="mainVideo" playsinline preload="metadata" webkit-playsinline>
+            <source src="${s.video}" type="video/quicktime">
+            <source src="${s.video.replace('.mov', '.MOV')}" type="video/quicktime">
+            <source src="${s.video.replace('.mov', '.mp4')}" type="video/mp4">
+          </video>
+          <div class="video-overlay" id="vOverlay">
+            <div class="play-btn">
+              <svg width="22" height="22" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="video-progress"><div class="video-progress-fill" id="vProgress"></div></div>
+        </div>
+        <div class="watched-badge ${hasWatched ? 'show' : ''}" id="watchedBadge">Vídeo assistido</div>
+      `;
+
+          // Written text
+          html += `
+        <div class="written-text">
+          <div class="written-label">palavras de Nickolas</div>
+          <div class="written-content">${s.text.replace(/\n/g, '<br/>')}</div>
+        </div>
+      `;
+
+          // Final step special message
+          if (s.final) {
+            html += `
+          <div class="final-message">
+            <span class="heart-burst">🖤</span>
+            <p class="big">Se não for nós,<br/><span>vai ser doido.</span><br/>Mas te ver feliz é o que importa.</p>
+            <p class="small" style="margin-top:1.5rem">— Nickolas</p>
+          </div>
+        `;
+          }
+
+          // Next button (or finish)
+          if (!s.final) {
+            html += `<button class="next-btn ${hasWatched ? 'ready' : ''}" id="nextBtn" onclick="goNext()">
+          <span>Próxima etapa</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+        </button>`;
+          } else {
+            html += `<button class="next-btn ${hasWatched ? 'ready' : ''}" id="nextBtn" onclick="goNext()" style="margin-top:1.5rem">
+          <span>Ver todos os momentos</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+        </button>`;
+          }
+        }
+
+        wrap.innerHTML = html;
+        wrap.classList.add('active');
+
+        if (!isLocked) {
+          setupVideo(idx);
+          setupEasterEgg(s);
+        }
+
+        updateProgress();
+      }, 300);
+    }
+
+    // ── VIDEO SETUP ─────────────────────
+    function setupVideo(idx) {
+      const video = document.getElementById('mainVideo');
+      const overlay = document.getElementById('vOverlay');
+      const fill = document.getElementById('vProgress');
+      const badge = document.getElementById('watchedBadge');
+      const nextBtn = document.getElementById('nextBtn');
+
+      if (!video) return;
+
+      overlay.addEventListener('click', () => {
+        if (video.paused) { video.play(); overlay.classList.add('hidden'); }
+        else { video.pause(); overlay.classList.remove('hidden'); }
+      });
+
+      video.addEventListener('click', () => {
+        if (!video.paused) { video.pause(); overlay.classList.remove('hidden'); }
+      });
+
+      video.addEventListener('timeupdate', () => {
+        if (video.duration) { fill.style.width = (video.currentTime / video.duration * 100) + '%'; }
+      });
+
+      // If video fails to load, try alternate extensions
+      video.addEventListener('error', () => {
+        const sources = ['MOV', 'mov', 'mp4', 'heic'];
+        const base = 'videos/' + (idx + 1) + '.';
+        let tried = 0;
+        function tryNext() {
+          if (tried >= sources.length) return;
+          const src = base + sources[tried++];
+          video.src = src;
+          video.load();
+        }
+        tryNext();
+      });
+
+      video.addEventListener('ended', () => {
+        overlay.classList.remove('hidden');
+        if (!watched.includes(idx)) {
+          watched.push(idx);
+          sessionStorage.setItem('watchedSteps', JSON.stringify(watched));
+        }
+        badge.classList.add('show');
+        if (nextBtn) nextBtn.classList.add('ready');
+      });
+
+      // If already watched, allow next immediately
+      if (watched.includes(idx) && nextBtn) {
+        nextBtn.classList.add('ready');
+      }
+
+      // Mark completed when last video is watched
+      if (idx === TOTAL - 1) {
+        video.addEventListener('ended', () => {
+          sessionStorage.setItem('completed', '1');
+        });
+        if (watched.includes(TOTAL - 1)) {
+          sessionStorage.setItem('completed', '1');
+        }
+      }
+    }
+
+    // ── EASTER EGGS ─────────────────────
+    let idleT;
+    function setupEasterEgg(s) {
+      const e = s.easterEgg;
+      if (!e) return;
+
+      if (e.trigger === 'idle') {
+        clearTimeout(idleT);
+        function resetIdle() {
+          clearTimeout(idleT);
+          idleT = setTimeout(() => showQ(e.quote, e.author), 9000);
+        }
+        document.addEventListener('mousemove', resetIdle);
+        document.addEventListener('keydown', resetIdle);
+        resetIdle();
+      }
+
+      if (e.trigger === 'title-click') {
+        let clicks = 0, clickT;
+        const title = document.getElementById('stepTitle');
+        if (title) {
+          title.style.cursor = 'pointer';
+          title.addEventListener('click', () => {
+            clicks++;
+            clearTimeout(clickT);
+            clickT = setTimeout(() => clicks = 0, 800);
+            if (clicks >= 3) { showQ(e.quote, e.author); clicks = 0; }
+          });
+        }
+      }
+    }
+
+    // ── NAVIGATION ──────────────────────
+    function goNext() {
+      if (!watched.includes(current)) return;
+      if (current < TOTAL - 1) {
+        current++;
+        sessionStorage.setItem('currentStep', current);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        renderStep(current);
+      } else {
+        sessionStorage.setItem('completed', '1');
+        const fl = document.getElementById('flash');
+        fl.classList.remove('gone'); fl.style.opacity = '1';
+        setTimeout(() => { window.location.href = 'galeria.html'; }, 800);
+      }
+    }
+
+    // ── INIT ────────────────────────────
+    window.addEventListener('load', () => {
+      const flash = document.getElementById('flash');
+      setTimeout(() => {
+        flash.classList.add('gone');
+        setTimeout(() => flash.remove(), 1100);
+      }, 400);
+      renderStep(current);
+    });
+  </script>
+</body>
+
+</html>

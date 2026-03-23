@@ -197,11 +197,12 @@ function login(){
   if(normalize(n)===normalize(NOME) && d===DATA){
     sessionStorage.setItem('authed','1');
     sessionStorage.setItem('firstName', n.trim().split(' ')[0]);
+    const jaCompletou = sessionStorage.getItem('completed') === '1';
     showQuote('O nome é o primeiro presente que alguém nos dá — e o que o desejo insiste em chamar.','inspirado em Lacan');
     setTimeout(()=>{
       const fl=document.getElementById('flash');
       fl.classList.add('active');
-      setTimeout(()=>{ window.location.href='trilha.html'; },900);
+      setTimeout(()=>{ window.location.href = jaCompletou ? 'galeria.html' : 'trilha.html'; },900);
     },1900);
   } else {
     const card=document.getElementById('card');
