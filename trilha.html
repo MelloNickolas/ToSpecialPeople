@@ -49,7 +49,7 @@
 
     /* VIDEO PLAYER — vertical stories */
     .video-wrap { position:relative; width:100%; max-width:340px; margin:0 auto 2rem; background:#000; border:1px solid var(--border); overflow:hidden; border-radius:2px; aspect-ratio:9/16; }
-    .video-wrap video { width:100%; height:100%; display:block; object-fit:cover; }
+    .video-wrap video { width:100%; height:100%; display:block; object-fit:contain; background:#000; }
     .video-wrap iframe { width:100%; height:100%; display:block; border:none; }
     .video-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.45); cursor:pointer; transition:opacity .4s; }
     .video-overlay.hidden { opacity:0; pointer-events:none; }
@@ -273,16 +273,18 @@ function setupVideo(idx){
   const timeline=document.getElementById('vTimeline');
   const timeLabel=document.getElementById('vTime');
   if(!video) return;
+  let playing = false;
   overlay.addEventListener('click',()=>{
-    if(video.paused){
-      const p = video.play();
-      if(p !== undefined){ p.then(()=>{ overlay.classList.add('hidden'); }).catch(()=>{}); }
-      else { overlay.classList.add('hidden'); }
-    } else {
-      video.pause(); overlay.classList.remove('hidden');
+    if(!playing){
+      playing = true;
+      overlay.classList.add('hidden');
+      video.play().catch(()=>{ playing=false; overlay.classList.remove('hidden'); });
     }
   });
-  video.addEventListener('click',()=>{ if(!video.paused){ video.pause(); overlay.classList.remove('hidden'); } });
+  video.addEventListener('click',()=>{
+    if(!video.paused){ video.pause(); playing=false; overlay.classList.remove('hidden'); }
+  });
+  video.addEventListener('ended',()=>{ playing=false; overlay.classList.remove('hidden'); });
   function fmt(s){ const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
   video.addEventListener('timeupdate',()=>{
     if(!video.duration) return;
@@ -305,7 +307,6 @@ function setupVideo(idx){
   document.addEventListener('mouseup',()=>drag=false);
   document.addEventListener('touchend',()=>drag=false);
   timeline.addEventListener('click',seekTo);
-  video.addEventListener('ended',()=>{ overlay.classList.remove('hidden'); });
 }
 
 // Easter eggs
