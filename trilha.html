@@ -274,8 +274,13 @@ function setupVideo(idx){
   const timeLabel=document.getElementById('vTime');
   if(!video) return;
   overlay.addEventListener('click',()=>{
-    if(video.paused){ video.play(); overlay.classList.add('hidden'); }
-    else { video.pause(); overlay.classList.remove('hidden'); }
+    if(video.paused){
+      const p = video.play();
+      if(p !== undefined){ p.then(()=>{ overlay.classList.add('hidden'); }).catch(()=>{}); }
+      else { overlay.classList.add('hidden'); }
+    } else {
+      video.pause(); overlay.classList.remove('hidden');
+    }
   });
   video.addEventListener('click',()=>{ if(!video.paused){ video.pause(); overlay.classList.remove('hidden'); } });
   function fmt(s){ const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
